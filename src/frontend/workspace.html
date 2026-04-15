@@ -1,0 +1,297 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>CareSathi - Unified Workspace</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+    <style>
+        :root { --cb-blue: #004171; --cb-light: #bfe4ff; --cb-teal: #42ba85; --cb-green: #42bb8a; --bg: #f0f4f8; --danger: #e53e3e; }
+        body { font-family: 'Inter', sans-serif; background: var(--bg); margin: 0; padding-top: 80px; }
+        
+        /* Navigation & Tabs */
+        .float-nav { position: fixed; top: 0; left: 0; right: 0; background: var(--cb-blue); padding: 10px 40px; display: flex; justify-content: space-between; align-items: center; z-index: 1000; color: white; box-shadow: 0 4px 15px rgba(0,0,0,0.2); }
+        .tab-bar { display: flex; background: white; padding: 10px 20px; gap: 10px; border-bottom: 2px solid #ddd; position: sticky; top: 60px; z-index: 999; }
+        .tab-btn { padding: 10px 20px; border: none; background: #eee; border-radius: 8px; cursor: pointer; font-weight: bold; color: var(--cb-blue); }
+        .tab-btn.active { background: var(--cb-blue); color: white; }
+        
+        /* Layout */
+        .container { max-width: 1200px; margin: 20px auto; padding: 0 20px; display: grid; grid-template-columns: 1fr 400px; gap: 20px; }
+        .main-col { display: flex; flex-direction: column; gap: 20px; }
+        .card { background: white; padding: 25px; border-radius: 20px; box-shadow: 0 10px 30px rgba(0,0,0,0.05); }
+        .tab-content { display: none; }
+        .tab-content.active { display: block; }
+
+        /* Shared Components */
+        input, select, textarea { width: 100%; padding: 12px; margin-bottom: 15px; border: 2px solid var(--cb-light); border-radius: 8px; box-sizing: border-box; }
+        button { width: 100%; padding: 14px; border-radius: 12px; border: none; font-weight: bold; cursor: pointer; transition: 0.3s; margin-bottom: 10px; }
+        .btn-primary { background: var(--cb-blue); color: white; }
+        .btn-voice { background: var(--cb-teal); color: white; }
+        .btn-danger { background: transparent; color: var(--danger); border: 2px solid var(--danger); }
+        
+        /* Patient List UI */
+        .patient-item { padding: 12px; border-bottom: 1px solid #eee; cursor: pointer; display: flex; justify-content: space-between; align-items: center; }
+        .patient-item:hover { background: var(--cb-light); }
+        .urgent-tag { background: #fee2e2; color: #dc2626; padding: 2px 8px; border-radius: 10px; font-size: 11px; font-weight: bold; }
+        
+        /* Visual Analysis specific */
+        .upload-area { border: 3px dashed var(--cb-light); padding: 30px; text-align: center; border-radius: 20px; cursor: pointer; margin-bottom: 20px; }
+        #imgPreview { max-width: 100%; border-radius: 12px; margin-top: 15px; display: none; }
+        
+        /* Vitals Grid */
+        .vitals-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 15px; margin-bottom: 20px; }
+        .v-input { background: #f8fafc; padding: 10px; border-radius: 10px; border: 1px solid #e2e8f0; }
+        .v-input label { font-size: 11px; font-weight: bold; color: #64748b; }
+    </style>
+</head>
+<body>
+
+    <div class="float-nav">
+        <div class="logo">Care<span>Sathi</span> Workspace</div>
+        <div style="display: flex; gap: 15px; align-items: center;">
+            <a href="index.html" style="color:white; text-decoration:none; font-weight:bold;">Home</a>
+            <select id="langPicker" onchange="changeLang()" style="margin:0; width:auto; padding:5px;">
+                <option value="en">English</option>
+                <option value="hi">हिंदी (Hindi)</option>
+                <option value="or">ଓଡ଼ିଆ (Odia)</option>
+                <option value="ur">اردو (Urdu)</option>
+            </select>
+        </div>
+    </div>
+
+    <div class="tab-bar">
+        <button class="tab-btn active" onclick="openTab(event, 'tab-patients')" id="btn-tab-p">Directory</button>
+        <button class="tab-btn" onclick="openTab(event, 'tab-triage')" id="btn-tab-t">Smart Triage</button>
+        <button class="tab-btn" onclick="openTab(event, 'tab-vision')" id="btn-tab-v">AI Vision</button>
+    </div>
+
+    <div class="container">
+        <div class="main-col">
+            <div id="tab-patients" class="tab-content active">
+                <div class="card">
+                    <h3 id="t-reg-title">Register New Patient</h3>
+                    <input type="text" id="p_name" placeholder="Full Name">
+                    <input type="number" id="p_age" placeholder="Age">
+                    <input type="text" id="p_village" placeholder="Village Name">
+                    <button class="btn-primary" onclick="addPatient()" id="t-reg-btn">Register Patient</button>
+                    <hr>
+                    <h3 id="t-dir-title">Patient Directory</h3>
+                    <div id="patientList"></div>
+                </div>
+            </div>
+
+            <div id="tab-triage" class="tab-content">
+                <div class="card">
+                    <h2 id="t-triage-title">🩺 Triage Assistant</h2>
+                    <textarea id="symptomText" placeholder="Describe symptoms..."></textarea>
+                    <div class="vitals-grid">
+                        <div class="v-input"><label>Temp (°F)</label><input type="number" id="v_temp" value="98.6"></div>
+                        <div class="v-input"><label>SpO2 (%)</label><input type="number" id="v_spo2" value="98"></div>
+                        <div class="v-input"><label>BP</label><input type="text" id="v_bp" placeholder="120/80"></div>
+                        <div class="v-input"><label>Pulse (bpm)</label><input type="number" id="v_pulse" value="72"></div>
+                    </div>
+                    <button class="btn-voice" id="voiceBtn">🎤 Start Voice Input</button>
+                    <button class="btn-primary" onclick="runDiagnosis()" id="t-diag-btn">🚀 Analyze & Advice</button>
+                    <div id="resultBox" class="card" style="display:none; margin-top:15px; background:#f0f9ff;">
+                        <h3>AI Assessment</h3>
+                        <div id="diagText" style="white-space: pre-line;"></div>
+                        <button class="btn-primary" onclick="saveToPatientHistory()" style="background:var(--cb-green)">💾 Save to History</button>
+                        <button class="btn-primary" onclick="generatePDF()" style="background:#64748b">📄 Referral PDF</button>
+                    </div>
+                </div>
+            </div>
+
+            <div id="tab-vision" class="tab-content">
+                <div class="card">
+                    <h2 id="t-vision-title">🖼️ AI Visual Diagnostic</h2>
+                    <div class="upload-area" onclick="document.getElementById('imgInput').click()">
+                        <p id="t-up-text">Click to upload X-Ray or Skin Image</p>
+                        <input type="file" id="imgInput" hidden accept="image/*" onchange="previewFile()">
+                        <img id="imgPreview">
+                    </div>
+                    <button class="btn-primary" onclick="runImageAnalysis()" id="t-vision-btn">Run Neural Analysis</button>
+                    <div id="imgResult" class="card" style="display:none; margin-top:15px; background:#f0f9ff;">
+                        <h3 id="resLabel" style="color:var(--cb-blue)">Processing...</h3>
+                        <p id="resExpl"></p>
+                        <button class="btn-primary" onclick="saveAnalysisToHistory()" style="background:var(--cb-teal)">💾 Save to Patient Record</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="card" id="detailsView">
+            <h3 id="t-details-title">Selected Patient</h3>
+            <p id="t-details-instr" style="color: #666;">Choose a patient from the Directory to start triage or vision analysis.</p>
+        </div>
+    </div>
+
+    <script>
+        const API = "http://127.0.0.1:5005";
+        let currentSelectedId = null;
+
+        const translations = {
+            en: { reg: "Register New Patient", dir: "Patient Directory", triage: "Smart Triage Assistant", vision: "AI Visual Diagnostic", details: "Selected Patient", instr: "Choose a patient from the Directory...", regBtn: "Register Patient", diagBtn: "Analyze & Advice", visionBtn: "Run Analysis" },
+            hi: { reg: "नया मरीज पंजीकृत करें", dir: "मरीज निर्देशिका", triage: "स्मार्ट ट्राइएज सहायक", vision: "एआई विजुअल डायग्नोस्टिक", details: "चयनित मरीज", instr: "ट्राइएज या विजन विश्लेषण शुरू करने के लिए निर्देशिका से एक मरीज चुनें।", regBtn: "पंजीकरण करें", diagBtn: "विश्लेषण और सलाह", visionBtn: "विश्लेषण चलाएं" },
+            or: { reg: "ନୂତନ ରୋଗୀ ପଞ୍ଜିକରଣ", dir: "ରୋଗୀ ତାଲିକା", triage: "ସ୍ମାର୍ଟ ଟ୍ରାଇଜ୍ ସହାୟକ", vision: "AI ଦୃଶ୍ୟ ନିଦାନ", details: "ଚୟନିତ ରୋଗୀ", instr: "ବିଶ୍ଳେଷଣ ଆରମ୍ଭ କରିବାକୁ ରୋଗୀ ଚୟନ କରନ୍ତୁ |", regBtn: "ପଞ୍ଜିକରଣ କରନ୍ତୁ", diagBtn: "ବିଶ୍ଳେଷଣ କରନ୍ତୁ", visionBtn: "ବିଶ୍ଳେଷଣ ଚଲାନ୍ତୁ" },
+            ur: { reg: "نیا مریض رجسٹر کریں", dir: "مریضوں کی فہرست", triage: "سمارٹ ٹرایج اسسٹنٹ", vision: "AI بصری تشخیص", details: "منتخب مریض", instr: "تجزیہ شروع کرنے کے لیے فہرست سے مریض کا انتخاب کریں۔", regBtn: "رجسٹر کریں", diagBtn: "تجزیہ اور مشورہ", visionBtn: "تجزیہ کریں" }
+        };
+
+        function changeLang() {
+            const l = document.getElementById("langPicker").value;
+            localStorage.setItem("cs_lang", l);
+            const t = translations[l];
+            document.getElementById("t-reg-title").innerText = t.reg;
+            document.getElementById("t-dir-title").innerText = t.dir;
+            document.getElementById("t-triage-title").innerText = t.triage;
+            document.getElementById("t-vision-title").innerText = t.vision;
+            document.getElementById("t-details-title").innerText = t.details;
+            if(!currentSelectedId) document.getElementById("t-details-instr").innerText = t.instr;
+            document.getElementById("t-reg-btn").innerText = t.regBtn;
+            document.getElementById("t-diag-btn").innerText = t.diagBtn;
+            document.getElementById("t-vision-btn").innerText = t.visionBtn;
+        }
+
+        function openTab(evt, tabId) {
+            let contents = document.getElementsByClassName("tab-content");
+            for (let i = 0; i < contents.length; i++) contents[i].style.display = "none";
+            let btns = document.getElementsByClassName("tab-btn");
+            for (let i = 0; i < btns.length; i++) btns[i].className = btns[i].className.replace(" active", "");
+            document.getElementById(tabId).style.display = "block";
+            evt.currentTarget.className += " active";
+        }
+
+        // PATIENT LOGIC
+        async function loadPatients() {
+            try {
+                const res = await fetch(`${API}/get-patients`);
+                const patients = await res.json();
+                const list = document.getElementById('patientList');
+                list.innerHTML = Object.entries(patients).map(([id, p]) => `
+                    <div class="patient-item" onclick="viewPatient('${id}')">
+                        <div><b>${p.name}</b><br><small>${id} | ${p.village}</small></div>
+                        ${p.history.some(h => h.diagnosis.includes("High")) ? '<span class="urgent-tag">URGENT</span>' : ''}
+                    </div>
+                `).join('');
+            } catch (e) { console.error("API Offline"); }
+        }
+
+        async function addPatient() {
+            const name = document.getElementById('p_name').value;
+            const age = document.getElementById('p_age').value;
+            const village = document.getElementById('p_village').value;
+            if(!name || !age || !village) return alert("Fill all fields");
+            await fetch(`${API}/add-patient`, { method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify({name, age, village}) });
+            loadPatients();
+        }
+
+        async function viewPatient(id) {
+            currentSelectedId = id;
+            const res = await fetch(`${API}/get-patients`);
+            const patients = await res.json();
+            const p = patients[id];
+            const details = document.getElementById('detailsView');
+            details.innerHTML = `
+                <h3>${p.name} (${p.age}y)</h3>
+                <p><b>ID:</b> ${id} | <b>Village:</b> ${p.village}</p>
+                <div style="background:var(--bg); padding:10px; border-radius:8px; display:flex; justify-content:space-between; margin-bottom:15px;">
+                    <div><small>Temp</small><br><b>${p.current_vitals.temp || '--'}°F</b></div>
+                    <div><small>SpO2</small><br><b>${p.current_vitals.spo2 || '--'}%</b></div>
+                    <div><small>BP</small><br><b>${p.current_vitals.bp || '--'}</b></div>
+                </div>
+                <h4>History:</h4>
+                <div style="max-height:200px; overflow-y:auto;">
+                    ${p.history.map(h => `<div style="font-size:12px; border-left:2px solid var(--cb-teal); padding-left:5px; margin-bottom:8px;"><b>${h.date}</b>: ${h.diagnosis}</div>`).reverse().join('')}
+                </div>
+                <button class="btn-danger" onclick="deletePatient('${id}')">Delete Record</button>
+            `;
+        }
+
+        async function deletePatient(id) {
+            if(!confirm("Delete record?")) return;
+            await fetch(`${API}/delete-patient`, { method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify({id}) });
+            location.reload();
+        }
+
+        // TRIAGE LOGIC
+        async function runDiagnosis() {
+            if(!currentSelectedId) return alert("Select a patient first!");
+            const text = document.getElementById("symptomText").value;
+            const vitals = { temp: document.getElementById("v_temp").value, spo2: document.getElementById("v_spo2").value, bp: document.getElementById("v_bp").value, pulse: document.getElementById("v_pulse").value };
+            document.getElementById("resultBox").style.display = "block";
+            document.getElementById("diagText").innerText = "Analyzing...";
+            const res = await fetch(`${API}/analyze-text`, { method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify({ text, vitals }) });
+            const data = await res.json();
+            document.getElementById("diagText").innerText = data.diagnosis;
+        }
+
+        async function saveToPatientHistory() {
+            const diag = document.getElementById("diagText").innerText;
+            const vitals = { temp: document.getElementById("v_temp").value, spo2: document.getElementById("v_spo2").value, bp: document.getElementById("v_bp").value };
+            await fetch(`${API}/update-patient-medical`, { method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify({ id: currentSelectedId, vitals, diagnosis: diag }) });
+            alert("Saved!"); viewPatient(currentSelectedId);
+        }
+
+        // VISION LOGIC
+        function previewFile() {
+            const file = document.getElementById("imgInput").files[0];
+            const reader = new FileReader();
+            reader.onloadend = () => { const img = document.getElementById("imgPreview"); img.src = reader.result; img.style.display = "block"; };
+            if(file) reader.readAsDataURL(file);
+        }
+
+        async function runImageAnalysis() {
+            const file = document.getElementById("imgInput").files[0];
+            if(!file) return alert("Select image!");
+            document.getElementById("imgResult").style.display = "block";
+            const fd = new FormData(); fd.append('file', file);
+            const res = await fetch(`${API}/analyze-image`, {method:'POST', body:fd});
+            const d = await res.json();
+            document.getElementById("resLabel").innerText = d.label;
+            document.getElementById("resExpl").innerText = d.explanation;
+        }
+
+        async function saveAnalysisToHistory() {
+            if(!currentSelectedId) return alert("Select patient!");
+            const label = document.getElementById("resLabel").innerText;
+            const expl = document.getElementById("resExpl").innerText;
+            await fetch(`${API}/update-patient-medical`, { method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify({ id: currentSelectedId, vitals: {}, diagnosis: `Visual: ${label}. ${expl}` }) });
+            alert("Saved!"); viewPatient(currentSelectedId);
+        }
+
+        // PDF & VOICE
+        function generatePDF() {
+            const { jsPDF } = window.jspdf;
+            const doc = new jsPDF();
+            doc.text("CareSathi Referral", 20, 20);
+            doc.text(`Patient ID: ${currentSelectedId}`, 20, 30);
+            doc.text(`Symptoms: ${document.getElementById("symptomText").value}`, 20, 50);
+            doc.text(`Advice: ${document.getElementById("diagText").innerText}`, 20, 70);
+            doc.save("referral.pdf");
+        }
+
+        let chunks = [];
+        document.getElementById("voiceBtn").onclick = async () => {
+            const stream = await navigator.mediaDevices.getUserMedia({audio:true});
+            const rec = new MediaRecorder(stream);
+            rec.ondataavailable = e => chunks.push(e.data);
+            rec.onstop = async () => {
+                const fd = new FormData(); fd.append('file', new Blob(chunks), 'v.wav');
+                const res = await fetch(`${API}/transcribe`, {method:'POST', body:fd});
+                const d = await res.json();
+                document.getElementById("symptomText").value = d.transcript;
+                chunks = [];
+            };
+            rec.start();
+            document.getElementById("voiceBtn").innerText = "🔴 Listening...";
+            setTimeout(() => { rec.stop(); document.getElementById("voiceBtn").innerText = "🎤 Start Voice Input"; }, 5000);
+        };
+
+        window.onload = () => { 
+            loadPatients(); 
+            const savedLang = localStorage.getItem("cs_lang") || "en";
+            document.getElementById("langPicker").value = savedLang;
+            changeLang();
+        };
+    </script>
+</body>
+</html>

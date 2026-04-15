@@ -66,6 +66,17 @@ def update_inventory():
 def get_patients():
     return jsonify(load_json(PATIENTS_FILE, {}))
 
+@app.route('/delete-patient', methods=['POST'])
+def delete_patient():
+    data = request.json
+    p_id = data.get('id')
+    patients = load_json(PATIENTS_FILE, {})
+    if p_id in patients:
+        del patients[p_id]
+        save_json(PATIENTS_FILE, patients)
+        return jsonify({"status": "success"})
+    return jsonify({"status": "error", "message": "ID not found"}), 404
+
 @app.route('/add-patient', methods=['POST'])
 def add_patient():
     data = request.json
