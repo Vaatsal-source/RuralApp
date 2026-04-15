@@ -11,7 +11,7 @@ from flask_cors import CORS
 
 app = Flask(__name__)
 CORS(app)
-
+CORS(app, resources={r"/*": {"origins": "*"}})
 # --- PATH CONFIGURATION ---
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 MODELS_PATH = os.path.join(BASE_DIR, "models")

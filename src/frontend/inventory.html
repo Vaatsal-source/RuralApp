@@ -1,0 +1,84 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Inventory Manager</title>
+    <style>
+        :root { --cb-blue: #004171; --cb-light: #bfe4ff; --cb-teal: #42ba85; --cb-green: #42bb8a; --bg: #f0f4f8; }
+        body { font-family: 'Inter', sans-serif; background: var(--bg); margin: 0; padding-top: 100px; }
+        .float-nav { position: fixed; top: 0; left: 0; right: 0; background: var(--cb-blue); padding: 15px 40px; display: flex; justify-content: space-between; align-items: center; z-index: 1000; color: white; box-shadow: 0 4px 15px rgba(0,0,0,0.2); }
+        .nav-links { display: flex; gap: 20px; }
+        .nav-links a { color: white; text-decoration: none; font-weight: bold; opacity: 0.7; }
+        .nav-links a.active { opacity: 1; border-bottom: 2px solid var(--cb-light); }
+        .container { max-width: 900px; margin: auto; display: grid; grid-template-columns: 1fr 350px; gap: 25px; padding: 20px; }
+        .card { background: white; padding: 25px; border-radius: 16px; box-shadow: 0 4px 20px rgba(0,0,0,0.05); }
+        .list-row { padding: 15px; border-bottom: 1px solid #eee; display: flex; justify-content: space-between; align-items: center; }
+        input { width: 100%; padding: 12px; margin-bottom: 10px; border: 2px solid var(--cb-light); border-radius: 8px; box-sizing: border-box; }
+        .btn-teal { width: 100%; background: var(--cb-teal); color: white; padding: 12px; border: none; border-radius: 8px; font-weight: bold; cursor: pointer; transition: 0.3s; }
+        .btn-teal:hover { background: var(--cb-green); }
+        .lang-select { background: white; border: none; padding: 5px 10px; border-radius: 15px; font-weight: bold; color: var(--cb-blue); cursor: pointer; }
+    </style>
+</head>
+<body>
+<div class="float-nav">
+    <div class="nav-links">
+        <a href="index.html">🏠 Home</a><a href="triage.html">🩺 Triage</a><a href="analysis.html">🖼️ Analysis</a><a href="inventory.html" class="active">📦 Inventory</a>
+    </div>
+    <select class="lang-select" id="langPicker" onchange="changeLang()">
+        <option value="en">English</option><option value="hi">हिंदी</option><option value="or">ଓଡ଼ିଆ</option><option value="ur">اردو</option>
+    </select>
+</div>
+<div class="container">
+    <div class="card"><h3 id="t-stock">Live Stock Levels</h3><div id="inventoryList"></div></div>
+    <div class="card">
+        <h3 id="t-upd">Update Supply Stock</h3>
+        <input type="text" id="inv_name" placeholder="Item Name (e.g. Paracetamol)">
+        <input type="number" id="inv_qty" placeholder="Quantity">
+        <button class="btn-teal" id="t-btn" onclick="updateStock()">Update Record</button>
+    </div>
+</div>
+<script>
+    const trans = { 
+        en:{s:"Live Stock Levels", u:"Update Supply Stock", b:"Update Record", p1:"Item Name", p2:"Quantity"}, 
+        hi:{s:"लाइव स्टॉक स्तर", u:"सप्लाई स्टॉक अपडेट करें", b:"रिकॉर्ड अपडेट करें", p1:"मद का नाम", p2:"मात्रा"}, 
+        or:{s:"ଷ୍ଟକ୍ ସ୍ଥିତି", u:"ଷ୍ଟକ୍ ଅପଡେଟ୍ କରନ୍ତୁ", b:"ଅପଡେଟ୍ କରନ୍ତୁ", p1:"ସାମଗ୍ରୀ ନାମ", p2:"ପରିମାଣ"}, 
+        ur:{s:"اسٹاک کی سطح", u:"اسٹاک اپ ڈیٹ کریں", b:"ریکارڈ اپ ڈیٹ کریں", p1:"چیز کا نام", p2:"مقدار"} 
+    };
+
+    function changeLang() {
+        const lang = document.getElementById("langPicker").value;
+        localStorage.setItem("cs_lang", lang);
+        document.getElementById("t-stock").innerText = trans[lang].s;
+        document.getElementById("t-upd").innerText = trans[lang].u;
+        document.getElementById("t-btn").innerText = trans[lang].b;
+        document.getElementById("inv_name").placeholder = trans[lang].p1;
+        document.getElementById("inv_qty").placeholder = trans[lang].p2;
+    }
+
+    async function fetchInventory() {
+        try {
+            const res = await fetch(`http://127.0.0.1:5005/get-inventory`);
+            const data = await res.json();
+            document.getElementById("inventoryList").innerHTML = Object.entries(data).map(([name, qty]) => `
+                <div class="list-row"><span>${name}</span><strong style="color:var(--cb-blue)">${qty} units</strong></div>
+            `).join('');
+        } catch(e) { console.log("Inventory API Offline"); }
+    }
+
+    async function updateStock() {
+        const item = document.getElementById("inv_name").value;
+        const quantity = document.getElementById("inv_qty").value;
+        if(!item || !quantity) return alert("Please fill both fields");
+        await fetch(`http://127.0.0.1:5005/update-inventory`, { 
+            method: 'POST', 
+            headers: {'Content-Type': 'application/json'}, 
+            body: JSON.stringify({item, quantity}) 
+        });
+        document.getElementById("inv_name").value = "";
+        document.getElementById("inv_qty").value = "";
+        fetchInventory();
+    }
+    window.onload = () => { fetchInventory(); document.getElementById("langPicker").value = localStorage.getItem("cs_lang") || "en"; changeLang(); };
+</script>
+</body>
+</html>
