@@ -14,13 +14,13 @@ app = Flask(__name__)
 CORS(app)
 CORS(app, resources={r"/*": {"origins": "*"}})
 
-# --- PATH CONFIGURATION ---
+
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 MODELS_PATH = os.path.join(BASE_DIR, "models")
 INVENTORY_FILE = os.path.join(BASE_DIR, "inventory.json")
 PATIENTS_FILE = os.path.join(BASE_DIR, "patients.json")
 
-# Model Filenames
+
 LLM_FILE = "tinyllama-1.1b-chat-v1.0.Q4_K_M.gguf"
 VOSK_MODEL_DIR = os.path.join(MODELS_PATH, "vosk-model-small-hi-0.22")
 
