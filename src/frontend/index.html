@@ -154,7 +154,7 @@
             document.getElementById("asha_display").innerText = "Worker: " + (localStorage.getItem("asha_name") || "Guest ASHA");
 
             try {
-                const res = await fetch('http://127.0.0.1:5005/get-inventory');
+                const res = await fetch('/api/get-inventory');
                 const data = await res.json();
                 document.getElementById("stat-meds").innerText = Object.keys(data).length;
             } catch(e) { 

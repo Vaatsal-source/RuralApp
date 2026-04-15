@@ -57,7 +57,7 @@
 
     async function fetchInventory() {
         try {
-            const res = await fetch(`http://127.0.0.1:5005/get-inventory`);
+            const res = await fetch(`/api/get-inventory`);
             const data = await res.json();
             document.getElementById("inventoryList").innerHTML = Object.entries(data).map(([name, qty]) => `
                 <div class="list-row"><span>${name}</span><strong style="color:var(--cb-blue)">${qty} units</strong></div>
