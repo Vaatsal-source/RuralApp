@@ -1,0 +1,92 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Patient Management</title>
+    <style>
+        :root { --cb-blue: #004171; --cb-light: #bfe4ff; --cb-teal: #42ba85; --bg: #f0f4f8; }
+        body { font-family: 'Inter', sans-serif; background: var(--bg); margin: 0; padding-top: 100px; }
+        .float-nav { position: fixed; top: 0; left: 0; right: 0; background: var(--cb-blue); padding: 15px 40px; display: flex; justify-content: space-between; align-items: center; z-index: 1000; color: white; }
+        .nav-links a { color: white; text-decoration: none; margin-right: 20px; font-weight: bold; opacity: 0.7; }
+        .nav-links a.active { opacity: 1; border-bottom: 2px solid var(--cb-light); }
+        .container { max-width: 1000px; margin: auto; padding: 20px; display: grid; grid-template-columns: 1fr 1fr; gap: 20px; }
+        .card { background: white; padding: 20px; border-radius: 16px; box-shadow: 0 4px 15px rgba(0,0,0,0.05); }
+        .patient-item { padding: 15px; border-bottom: 1px solid #eee; cursor: pointer; display: flex; justify-content: space-between; transition: 0.2s; }
+        .patient-item:hover { background: var(--cb-light); }
+        .urgent-tag { background: #fee2e2; color: #dc2626; padding: 2px 8px; border-radius: 10px; font-size: 12px; font-weight: bold; }
+        .history-card { font-size: 14px; border-left: 3px solid var(--cb-teal); padding-left: 10px; margin-bottom: 10px; }
+        input { width: 100%; padding: 10px; margin: 5px 0; border: 1px solid #ddd; border-radius: 8px; }
+    </style>
+</head>
+<body>
+    <div class="float-nav">
+        <div class="nav-links">
+            <a href="index.html">Home</a><a href="patients.html" class="active">Patients</a><a href="triage.html">Triage</a><a href ="inventory.html">Inventory</a>
+        </div>
+    </div>
+    <div class="container">
+        <div class="card">
+            <h3>Register New Patient</h3>
+            <input type="text" id="p_name" placeholder="Full Name">
+            <input type="number" id="p_age" placeholder="Age">
+            <input type="text" id="p_village" placeholder="Village Name">
+            <button onclick="addPatient()" style="width:100%; background:var(--cb-blue); color:white; padding:10px; border:none; border-radius:8px; margin-top:10px;">Register Patient</button>
+            <hr>
+            <h3>Patient Directory</h3>
+            <div id="patientList"></div>
+        </div>
+        <div class="card" id="detailsView">
+            <h3>Patient Details</h3>
+            <p style="color: #666;">Select a patient to view history and vitals.</p>
+        </div>
+    </div>
+
+    <script>
+        async function addPatient() {
+            const name = document.getElementById('p_name').value;
+            const age = document.getElementById('p_age').value;
+            const village = document.getElementById('p_village').value;
+            await fetch('http://127.0.0.1:5005/add-patient', {
+                method: 'POST',
+                headers: {'Content-Type': 'application/json'},
+                body: JSON.stringify({name, age, village})
+            });
+            location.reload();
+        }
+
+        async function loadPatients() {
+            const res = await fetch('http://127.0.0.1:5005/get-patients');
+            const patients = await res.json();
+            const list = document.getElementById('patientList');
+            list.innerHTML = Object.entries(patients).map(([id, p]) => `
+                <div class="patient-item" onclick="viewPatient('${id}')">
+                    <div><b>${p.name}</b><br><small>${id} | ${p.village}</small></div>
+                    ${p.history.some(h => h.diagnosis.includes("High")) ? '<span class="urgent-tag">URGENT</span>' : ''}
+                </div>
+            `).join('');
+        }
+
+        window.viewPatient = async (id) => {
+            const res = await fetch('http://127.0.0.1:5005/get-patients');
+            const patients = await res.json();
+            const p = patients[id];
+            const details = document.getElementById('detailsView');
+            details.innerHTML = `
+                <h2>${p.name} (${p.age}y)</h2>
+                <p><b>Village:</b> ${p.village}</p>
+                <h4>Current Vitals:</h4>
+                <div style="background:var(--bg); padding:10px; border-radius:8px;">
+                    Temp: ${p.current_vitals.temp || '--'}°F | SpO2: ${p.current_vitals.spo2 || '--'}% | BP: ${p.current_vitals.bp || '--'}
+                </div>
+                <h4>Medical History:</h4>
+                ${p.history.map(h => `
+                    <div class="history-card">
+                        <strong>${h.date}</strong><br>${h.diagnosis}
+                    </div>
+                `).reverse().join('')}
+            `;
+        };
+        window.onload = loadPatients;
+    </script>
+</body>
+</html>

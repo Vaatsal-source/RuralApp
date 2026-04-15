@@ -11,93 +11,119 @@
         .nav-links a { color: white; text-decoration: none; font-weight: bold; opacity: 0.7; }
         .nav-links a.active { opacity: 1; border-bottom: 2px solid var(--cb-light); }
         .container { max-width: 1100px; margin: auto; display: grid; grid-template-columns: 1fr 350px; gap: 25px; padding: 20px; }
-        .card { background: white; padding: 40px; border-radius: 16px; box-shadow: 0 4px 20px rgba(0,0,0,0.05); text-align: center; }
-        .info-card { background: var(--cb-light); padding: 25px; border-radius: 16px; color: var(--cb-blue); font-size: 15px; border-left: 8px solid var(--cb-teal); }
-        .upload-area { border: 3px dashed var(--cb-light); padding: 40px; border-radius: 12px; margin: 20px 0; background: #fafafa; cursor: pointer; transition: 0.3s; }
-        .upload-area:hover { border-color: var(--cb-teal); background: white; }
-        .btn-action { background: var(--cb-blue); color: white; padding: 15px; border: none; border-radius: 8px; font-weight: bold; cursor: pointer; width: 100%; font-size: 16px; }
-        .lang-select { background: white; border: none; padding: 5px 10px; border-radius: 15px; font-weight: bold; color: var(--cb-blue); }
-        #preview { max-width: 100%; max-height: 250px; margin-top: 15px; border-radius: 8px; display: none; margin-left: auto; margin-right: auto; }
+        .card { background: white; padding: 30px; border-radius: 20px; box-shadow: 0 10px 30px rgba(0,0,0,0.05); }
+        .upload-area { border: 3px dashed var(--cb-light); padding: 40px; text-align: center; border-radius: 20px; cursor: pointer; transition: 0.3s; margin-bottom: 20px; }
+        .upload-area:hover { background: #f0f9ff; border-color: var(--cb-blue); }
+        #imgPreview { max-width: 100%; border-radius: 12px; margin-top: 15px; display: none; }
+        button { width: 100%; padding: 15px; border-radius: 12px; border: none; background: var(--cb-blue); color: white; font-weight: bold; cursor: pointer; font-size: 16px; }
+        .res-card { margin-top: 25px; padding: 20px; border-radius: 15px; background: #f8fafc; border: 1px solid #e2e8f0; display: none; }
+        select { width: 100%; padding: 12px; border-radius: 8px; border: 2px solid var(--cb-light); margin-bottom: 15px; font-weight: bold; }
     </style>
 </head>
 <body>
-<div class="float-nav">
-    <div class="nav-links">
-        <a href="index.html">🏠 Home</a><a href="triage.html">🩺 Triage</a><a href="analysis.html" class="active">🖼️ Analysis</a><a href="inventory.html">📦 Inventory</a>
-    </div>
-    <select class="lang-select" id="langPicker" onchange="changeLang()">
-        <option value="en">English</option><option value="hi">हिंदी</option><option value="or">ଓଡ଼ିଆ</option><option value="ur">اردو</option>
-    </select>
-</div>
-<div class="container">
-    <div class="card">
-        <h2 id="t-title" style="color: var(--cb-blue);">AI Visual Diagnostic Engine</h2>
-        <div class="upload-area" onclick="document.getElementById('imgInput').click()">
-            <p id="t-up-text">Click to Upload X-Ray, Skin Scan, or Lab Report</p>
-            <input type="file" id="imgInput" accept="image/*" hidden>
-            <img id="preview">
-        </div>
-        <button class="btn-action" id="t-btn" onclick="runImageAnalysis()">Begin Neural Analysis</button>
-        <div id="imgResult" style="display:none; margin-top:25px; text-align:left; background:#e6fffa; padding:20px; border-left:5px solid var(--cb-green); border-radius: 0 8px 8px 0;">
-            <h4 id="resLabel" style="margin:0; color: var(--cb-blue);"></h4>
-            <p id="resExpl" style="margin-top:10px; line-height: 1.5;"></p>
+    <div class="float-nav">
+        <div class="logo">Care<span>Sathi</span> Vision</div>
+        <div class="nav-links">
+            <a href="index.html">Home</a>
+            <a href="patients.html">Patients</a>
+            <a href="analysis.html" class="active">Analysis</a>
+            <a href="inventory.html" >Inventory</a>
         </div>
     </div>
-    <div class="info-card">
-        <h3 id="t-instr">How to use Analysis:</h3>
-        <p id="t-p1"><b>1. Image Quality:</b> Ensure the photo is sharp and taken in natural lighting.</p>
-        <p id="t-p2"><b>2. Focus:</b> For skin scans, keep the lens 10cm away from the affected area.</p>
-        <p id="t-p3"><b>3. X-Rays:</b> If uploading an X-Ray film, place it against a white light source (window or screen).</p>
-        <hr style="border: 0; border-top: 1px solid #90cdf4; margin: 15px 0;">
-        
-    </div>
-</div>
-<script>
-    const trans = {
-        en: {title:"AI Visual Diagnostic", up:"Click to Upload Scan", btn:"Begin Analysis", instr:"Instructions", p1:"1. Image Quality: Ensure the photo is sharp.", p2:"2. Focus: Keep lens 10cm away.", p3:"3. X-Rays: Use a light source."},
-        hi: {title:"AI विजुअल डायग्नोस्टिक", up:"स्कैन अपलोड करने के लिए क्लिक करें", btn:"विश्लेषण शुरू करें", instr:"निर्देश", p1:"1. इमेज क्वालिटी: फोटो साफ होनी चाहिए।", p2:"2. फोकस: लेंस को 10 सेमी दूर रखें।", p3:"3. एक्स-रे: लाइट सोर्स का उपयोग करें।"},
-        or: {title:"AI ଦୃଶ୍ୟ ନିଦାନ", up:"ସ୍କାନ୍ ଅପଲୋଡ୍ କରିବାକୁ କ୍ଲିକ୍ କରନ୍ତୁ", btn:"ବିଶ୍ଳେଷଣ ଆରମ୍ଭ କରନ୍ତୁ", instr:"ନିର୍ଦ୍ଦେଶାବଳୀ", p1:"1. ଗୁଣବତ୍ତା: ଫୋଟୋ ସ୍ପଷ୍ଟ ହେବା ଉଚିତ୍ |", p2:"2. ଫୋକସ୍: 10 ସେମି ଦୂରରେ ରଖନ୍ତୁ |", p3:"3. ଏକ୍ସ-ରେ: ଆଲୋକ ବ୍ୟବହାର କରନ୍ତୁ |"},
-        ur: {title:"AI بصری تشخیص", up:"اسکین اپ لوڈ کرنے کے لیے کلک کریں", btn:"تجزیہ شروع کریں", instr:"ہدایات", p1:"1. تصویر کا معیار: صاف تصویر لیں۔", p2:"2. فوکس: لینس کو 10 سینٹی میٹر دور رکھیں۔", p3:"3. ایکس رے: روشنی کا استعمال کریں۔"}
-    };
 
-    document.getElementById('imgInput').onchange = e => {
-        const file = e.target.files[0];
-        if (file) {
-            const reader = new FileReader();
-            reader.onload = f => { 
-                const p = document.getElementById('preview');
-                p.src = f.target.result; p.style.display = 'block'; 
-            };
-            reader.readAsDataURL(file);
+    <div class="container">
+        <div class="card">
+            <h2 id="t-title">🖼️ AI Visual Diagnostic</h2>
+            
+            <label><b>Link to Patient:</b></label>
+            <select id="patientSelect">
+                <option value="">-- Optional: Select Patient --</option>
+            </select>
+
+            <div class="upload-area" onclick="document.getElementById('imgInput').click()">
+                <p id="t-up-text">Click to upload X-Ray or Skin Image</p>
+                <input type="file" id="imgInput" hidden accept="image/*" onchange="previewFile()">
+                <img id="imgPreview">
+            </div>
+            <button id="t-btn" onclick="runImageAnalysis()">Run Neural Analysis</button>
+
+            <div class="res-card" id="imgResult">
+                <h3 id="resLabel" style="color:var(--cb-blue); margin-top:0;">Processing...</h3>
+                <p id="resExpl" style="line-height: 1.6; color: #444;"></p>
+                <button onclick="saveAnalysisToHistory()" style="background:var(--cb-teal); margin-top:10px;">💾 Save to Patient Record</button>
+            </div>
+        </div>
+
+        <div class="card" style="background: var(--cb-light); color: var(--cb-blue);">
+            <h3>Instructions</h3>
+            <p id="t-instr">How to use:</p>
+            <p id="t-p1">1. Select image.</p>
+            <p id="t-p2">2. Upload for AI scan.</p>
+            <p id="t-p3">3. Review patterns.</p>
+        </div>
+    </div>
+
+    <script>
+        const API = "http://127.0.0.1:5005";
+
+        async function loadPatients() {
+            try {
+                const res = await fetch(`${API}/get-patients`);
+                const patients = await res.json();
+                const select = document.getElementById("patientSelect");
+                Object.entries(patients).forEach(([id, p]) => {
+                    let opt = document.createElement("option");
+                    opt.value = id;
+                    opt.innerHTML = p.name;
+                    select.appendChild(opt);
+                });
+            } catch(e) { console.error("Patients offline"); }
         }
-    };
 
-    function changeLang() {
-        const lang = document.getElementById("langPicker").value;
-        localStorage.setItem("cs_lang", lang);
-        const t = trans[lang];
-        document.getElementById("t-title").innerText = t.title;
-        document.getElementById("t-up-text").innerText = t.up;
-        document.getElementById("t-btn").innerText = t.btn;
-        document.getElementById("t-instr").innerText = t.instr;
-        document.getElementById("t-p1").innerHTML = "<b>" + t.p1 + "</b>";
-        document.getElementById("t-p2").innerHTML = "<b>" + t.p2 + "</b>";
-        document.getElementById("t-p3").innerHTML = "<b>" + t.p3 + "</b>";
-    }
+        function previewFile() {
+            const file = document.getElementById("imgInput").files[0];
+            const reader = new FileReader();
+            reader.onloadend = () => {
+                const img = document.getElementById("imgPreview");
+                img.src = reader.result;
+                img.style.display = "block";
+            };
+            if(file) reader.readAsDataURL(file);
+        }
 
-    async function runImageAnalysis() {
-        const file = document.getElementById("imgInput").files[0];
-        if(!file) return alert("Please select an image first.");
-        document.getElementById("imgResult").style.display = "block";
-        document.getElementById("resLabel").innerText = "Neural Network Processing...";
-        
-        const fd = new FormData(); fd.append('file', file);
-        const res = await fetch(`http://127.0.0.1:5005/analyze-image`, {method:'POST', body:fd});
-        const d = await res.json();
-        document.getElementById("resLabel").innerText = d.label;
-        document.getElementById("resExpl").innerText = d.explanation;
-    }
-    window.onload = () => { document.getElementById("langPicker").value = localStorage.getItem("cs_lang") || "en"; changeLang(); };
-</script>
+        async function runImageAnalysis() {
+            const file = document.getElementById("imgInput").files[0];
+            if(!file) return alert("Please select an image first.");
+            document.getElementById("imgResult").style.display = "block";
+            document.getElementById("resLabel").innerText = "Processing...";
+            
+            const fd = new FormData(); fd.append('file', file);
+            const res = await fetch(`${API}/analyze-image`, {method:'POST', body:fd});
+            const d = await res.json();
+            document.getElementById("resLabel").innerText = d.label;
+            document.getElementById("resExpl").innerText = d.explanation;
+        }
+
+        async function saveAnalysisToHistory() {
+            const pId = document.getElementById("patientSelect").value;
+            const label = document.getElementById("resLabel").innerText;
+            const expl = document.getElementById("resExpl").innerText;
+            
+            if(!pId) return alert("Please select a patient!");
+
+            await fetch(`${API}/update-patient-medical`, {
+                method: 'POST',
+                headers: {'Content-Type': 'application/json'},
+                body: JSON.stringify({
+                    id: pId,
+                    vitals: {},
+                    diagnosis: `Visual Analysis: ${label}. Findings: ${expl}`
+                })
+            });
+            alert("Analysis saved to history.");
+        }
+
+        window.onload = loadPatients;
+    </script>
 </body>
 </html>

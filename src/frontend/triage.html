@@ -11,106 +11,169 @@
         .nav-links { display: flex; gap: 20px; }
         .nav-links a { color: white; text-decoration: none; font-weight: bold; opacity: 0.7; transition: 0.3s; }
         .nav-links a.active { opacity: 1; border-bottom: 2px solid var(--cb-light); }
-        .container { max-width: 800px; margin: auto; padding: 20px; }
-        .card { background: white; padding: 30px; border-radius: 16px; box-shadow: 0 4px 20px rgba(0,0,0,0.05); }
-        .vitals { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 15px; margin-bottom: 20px; }
-        input, textarea { width: 100%; padding: 12px; border: 2px solid var(--cb-light); border-radius: 8px; box-sizing: border-box; font-size: 16px; }
-        .btn-primary { background: var(--cb-blue); color: white; padding: 15px; border: none; border-radius: 8px; cursor: pointer; font-weight: bold; margin-top: 10px; width: 100%; transition: 0.3s; }
-        .btn-primary:hover { background: var(--cb-teal); }
-        .lang-select { background: white; border: none; padding: 5px 10px; border-radius: 15px; font-weight: bold; color: var(--cb-blue); cursor: pointer; }
+        .container { max-width: 1100px; margin: auto; display: grid; grid-template-columns: 1fr 380px; gap: 25px; padding: 20px; }
+        .card { background: white; padding: 25px; border-radius: 20px; box-shadow: 0 10px 30px rgba(0,0,0,0.05); }
+        h2 { color: var(--cb-blue); margin-top: 0; display: flex; align-items: center; gap: 10px; }
+        textarea { width: 100%; height: 120px; border: 2px solid #e2e8f0; border-radius: 12px; padding: 15px; font-size: 16px; margin-bottom: 15px; resize: none; }
+        .vitals-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 15px; margin-bottom: 20px; }
+        .v-input { background: #f8fafc; padding: 10px; border-radius: 10px; border: 1px solid #e2e8f0; }
+        .v-input label { font-size: 12px; font-weight: bold; color: #64748b; display: block; }
+        .v-input input { border: none; background: transparent; width: 100%; font-size: 18px; color: var(--cb-blue); font-weight: bold; outline: none; }
+        button { width: 100%; padding: 14px; border-radius: 12px; border: none; font-weight: bold; cursor: pointer; transition: 0.3s; margin-bottom: 10px; }
+        .btn-primary { background: var(--cb-blue); color: white; }
+        .btn-voice { background: var(--cb-teal); color: white; }
+        .result-box { margin-top: 20px; padding: 20px; border-radius: 12px; background: #f0f9ff; border-left: 5px solid var(--cb-blue); display: none; }
+        select { width: 100%; padding: 12px; border-radius: 8px; border: 2px solid var(--cb-light); margin-bottom: 15px; font-weight: bold; }
     </style>
 </head>
 <body>
-<div class="float-nav">
-    <div class="nav-links">
-        <a href="index.html">🏠 Home</a>
-        <a href="triage.html" class="active">🩺 Triage</a>
-        <a href="analysis.html">🖼️ Analysis</a>
-        <a href="inventory.html">📦 Inventory</a>
-    </div>
-    <select class="lang-select" id="langPicker" onchange="changeLang()">
-        <option value="en">English</option><option value="hi">हिंदी</option><option value="or">ଓଡ଼ିଆ</option><option value="ur">اردو</option>
-    </select>
-</div>
-<div class="container">
-    <div class="card">
-        <h2 id="t-title">Triage Assistant</h2>
-        <div class="vitals">
-            <input type="number" id="v_temp" placeholder="Temp °F">
-            <input type="number" id="v_spo2" placeholder="SpO2 %">
-            <input type="text" id="v_bp" placeholder="BP (e.g. 120/80)">
-        </div>
-        <textarea id="symptomText" placeholder="..." style="height: 150px;"></textarea>
-        <button class="btn-primary" id="t-diag-btn" onclick="runDiagnosis()">Process Patient Data</button>
-        <button style="background:var(--cb-green); color:white;" class="btn-primary" id="voiceBtn"> Start Voice Input</button>
-        <div id="diagBox" style="margin-top:20px; padding:20px; background:#f0f9ff; border-left:5px solid var(--cb-teal); display:none; border-radius: 0 8px 8px 0;">
-            <div id="diagText" style="white-space: pre-wrap; font-weight: 500;"></div>
-            <button onclick="generatePDF()" style="margin-top:10px; padding:5px 10px; cursor:pointer;">Download Referral PDF</button>
+    <div class="float-nav">
+        <div class="logo">Care<span>Sathi</span> Triage</div>
+        <div class="nav-links">
+            <a href="index.html">Home</a>
+            <a href="patients.html">Patients</a>
+            <a href="triage.html" class="active">Triage</a>
+            <a href="inventory.html">Stock</a>
         </div>
     </div>
-</div>
-<script>
-    const API = "http://127.0.0.1:5005";
-    const trans = { 
-        en: {title:"Smart Triage Assistant", btn:"Process Patient Data", voice:"Start Voice Input"}, 
-        hi: {title:"स्मार्ट ट्राइएज सहायक", btn:"मरीज डेटा प्रोसेस करें", voice:"आवाज इनपुट शुरू करें"},
-        or: {title:"ସ୍ମାର୍ଟ ଟ୍ରାଇଏଜ୍ ସହାୟକ", btn:"ରୋଗୀ ତଥ୍ୟ ପ୍ରକ୍ରିୟାକରଣ", voice:"ସ୍ୱର ଇନପୁଟ୍ ଆରମ୍ଭ"},
-        ur: {title:"اسمارٹ ٹرائیج اسسٹنٹ", btn:"مریض کا ڈیٹا پروسیس کریں", voice:"آواز ان پٹ شروع کریں"}
-    };
 
-    function changeLang() {
-        const lang = document.getElementById("langPicker").value;
-        localStorage.setItem("cs_lang", lang);
-        document.getElementById("t-title").innerText = trans[lang].title;
-        document.getElementById("t-diag-btn").innerText = trans[lang].btn;
-        document.getElementById("voiceBtn").innerText = "🎤 " + trans[lang].voice;
-    }
+    <div class="container">
+        <div class="card">
+            <h2>🩺 Smart Triage Assistant</h2>
+            
+            <label><b>Select Patient:</b></label>
+            <select id="patientSelect">
+                <option value="">-- Select Patient to Log Data --</option>
+            </select>
 
-    async function runDiagnosis() {
-        const text = document.getElementById("symptomText").value;
-        const vitals = { temp: document.getElementById("v_temp").value, spo2: document.getElementById("v_spo2").value, bp: document.getElementById("v_bp").value };
-        document.getElementById("diagBox").style.display = "block";
-        document.getElementById("diagText").innerText = "Analyzing vitals and symptoms...";
-        
-        const res = await fetch(`${API}/analyze-text`, { method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({text, vitals}) });
-        const d = await res.json();
-        document.getElementById("diagText").innerText = d.diagnosis;
-        
-        let q = JSON.parse(localStorage.getItem("cs_q") || "[]");
-        q.unshift({ time: new Date().toLocaleTimeString(), symp: text.slice(0, 30), isHigh: d.diagnosis.includes("High") });
-        localStorage.setItem("cs_q", JSON.stringify(q.slice(0,15)));
-    }
+            <textarea id="symptomText" placeholder="Describe symptoms (e.g. Patient has high fever and cough for 3 days...)"></textarea>
+            
+            <div class="vitals-grid">
+                <div class="v-input"><label>Temperature (°F)</label><input type="number" id="v_temp" value="98.6"></div>
+                <div class="v-input"><label>SpO2 (%)</label><input type="number" id="v_spo2" value="98"></div>
+                <div class="v-input"><label>Blood Pressure</label><input type="text" id="v_bp" placeholder="120/80"></div>
+                <div class="v-input"><label>Pulse (bpm)</label><input type="number" id="v_pulse" value="72"></div>
+            </div>
 
-    let chunks = [];
-    document.getElementById("voiceBtn").onclick = async () => {
-        const stream = await navigator.mediaDevices.getUserMedia({audio:true});
-        const rec = new MediaRecorder(stream);
-        rec.ondataavailable = e => chunks.push(e.data);
-        rec.onstop = async () => {
-            const fd = new FormData(); fd.append('file', new Blob(chunks), 'v.wav');
-            const res = await fetch(`${API}/transcribe`, {method:'POST', body:fd});
-            const d = await res.json();
-            document.getElementById("symptomText").value = d.transcript;
-            chunks = []; runDiagnosis();
+            <button class="btn-voice" id="voiceBtn">🎤 Start Voice Input (Hindi/English)</button>
+            <button class="btn-primary" onclick="runDiagnosis()">🚀 Analyze & Generate Advice</button>
+
+            <div class="result-box" id="resultBox">
+                <h3 style="margin-top:0">AI Assessment</h3>
+                <div id="diagText" style="white-space: pre-line; line-height: 1.6;"></div>
+                <hr>
+                <button onclick="saveToPatientHistory()" style="background: var(--cb-green); color:white;">💾 Save to Patient History</button>
+                <button onclick="generatePDF()" style="background: #64748b; color:white;">📄 Download Referral PDF</button>
+            </div>
+        </div>
+
+        <div class="card" style="background: var(--cb-blue); color: white;">
+            <h3>Guidelines</h3>
+            <ul style="padding-left: 20px; opacity: 0.9; font-size: 14px; line-height: 2;">
+                <li>Ensure vitals are entered accurately.</li>
+                <li>Voice input supports Hindi & English.</li>
+                <li>Red text in diagnosis indicates HIGH RISK.</li>
+                <li>Check inventory for medicine availability.</li>
+            </ul>
+        </div>
+    </div>
+
+    <script>
+        const API = "http://127.0.0.1:5005";
+
+        async function loadPatients() {
+            try {
+                const res = await fetch(`${API}/get-patients`);
+                const patients = await res.json();
+                const select = document.getElementById("patientSelect");
+                Object.entries(patients).forEach(([id, p]) => {
+                    let opt = document.createElement("option");
+                    opt.value = id;
+                    opt.innerHTML = `${p.name} (${p.village})`;
+                    select.appendChild(opt);
+                });
+            } catch(e) { console.error("Could not load patients"); }
+        }
+
+        async function runDiagnosis() {
+            const text = document.getElementById("symptomText").value;
+            if(!text) return alert("Please enter symptoms.");
+            
+            const vitals = {
+                temp: document.getElementById("v_temp").value,
+                spo2: document.getElementById("v_spo2").value,
+                bp: document.getElementById("v_bp").value,
+                pulse: document.getElementById("v_pulse").value
+            };
+
+            document.getElementById("resultBox").style.display = "block";
+            document.getElementById("diagText").innerText = "CareSathi AI is analyzing...";
+
+            const res = await fetch(`${API}/analyze-text`, {
+                method: 'POST',
+                headers: {'Content-Type': 'application/json'},
+                body: JSON.stringify({ text, vitals })
+            });
+            const data = await res.json();
+            document.getElementById("diagText").innerText = data.diagnosis;
+
+            // Log to local queue for main page
+            const q = JSON.parse(localStorage.getItem("cs_q") || "[]");
+            q.unshift({
+                time: new Date().toLocaleTimeString(),
+                symp: text.substring(0, 30) + "...",
+                isHigh: data.diagnosis.includes("HIGH") || data.diagnosis.includes("High")
+            });
+            localStorage.setItem("cs_q", JSON.stringify(q.slice(0, 15)));
+        }
+
+        async function saveToPatientHistory() {
+            const pId = document.getElementById("patientSelect").value;
+            const diagnosis = document.getElementById("diagText").innerText;
+            if(!pId) return alert("Please select a patient first!");
+
+            const vitals = {
+                temp: document.getElementById("v_temp").value,
+                spo2: document.getElementById("v_spo2").value,
+                bp: document.getElementById("v_bp").value
+            };
+
+            const res = await fetch(`${API}/update-patient-medical`, {
+                method: 'POST',
+                headers: {'Content-Type': 'application/json'},
+                body: JSON.stringify({ id: pId, vitals, diagnosis })
+            });
+            const data = await res.json();
+            if(data.status === "success") alert("History Updated Successfully!");
+        }
+
+        let chunks = [];
+        document.getElementById("voiceBtn").onclick = async () => {
+            const stream = await navigator.mediaDevices.getUserMedia({audio:true});
+            const rec = new MediaRecorder(stream);
+            rec.ondataavailable = e => chunks.push(e.data);
+            rec.onstop = async () => {
+                const fd = new FormData(); fd.append('file', new Blob(chunks), 'v.wav');
+                const res = await fetch(`${API}/transcribe`, {method:'POST', body:fd});
+                const d = await res.json();
+                document.getElementById("symptomText").value = d.transcript;
+                chunks = []; runDiagnosis();
+            };
+            rec.start();
+            document.getElementById("voiceBtn").innerText = "🔴 Listening...";
+            setTimeout(() => { rec.stop(); document.getElementById("voiceBtn").innerText = "🎤 Start Voice Input"; }, 5000);
         };
-        rec.start();
-        document.getElementById("voiceBtn").innerText = "🔴 Listening...";
-        setTimeout(() => { rec.stop(); document.getElementById("voiceBtn").innerText = "🎤 Start Voice Input"; }, 5000);
-    };
 
-    function generatePDF() {
-        const { jsPDF } = window.jspdf;
-        const doc = new jsPDF();
-        doc.text("CareSathi Medical Referral", 20, 20);
-        doc.text(`Symptoms: ${document.getElementById("symptomText").value}`, 20, 40);
-        doc.text(`Diagnosis: ${document.getElementById("diagText").innerText}`, 20, 60);
-        doc.save("referral.pdf");
-    }
+        function generatePDF() {
+            const { jsPDF } = window.jspdf;
+            const doc = new jsPDF();
+            doc.text("CareSathi Medical Referral", 20, 20);
+            doc.text(`Symptoms: ${document.getElementById("symptomText").value}`, 20, 40);
+            doc.text(`Diagnosis: ${document.getElementById("diagText").innerText}`, 20, 60);
+            doc.save("referral.pdf");
+        }
 
-    window.onload = () => { 
-        document.getElementById("langPicker").value = localStorage.getItem("cs_lang") || "en"; 
-        changeLang(); 
-    };
-</script>
+        window.onload = loadPatients;
+    </script>
 </body>
 </html>
