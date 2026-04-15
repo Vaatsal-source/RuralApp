@@ -1,0 +1,23 @@
+# Block everything in these folders regardless of where they are
+**/node_modules/
+**/venv/
+**/models/
+**/.venv/
+
+# Block specific heavy extensions
+*.gguf
+*.tflite
+*.onnx
+*.zip
+*.bin
+
+# Local Data
+inventory.json
+**/__pycache__/
+*.jpg
+*.wav
+*.pdf
+
+# IDEs
+.vscode/
+.idea/

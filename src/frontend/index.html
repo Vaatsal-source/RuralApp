@@ -1,0 +1,269 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>CureBay CareSathi | AI Health Suite</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+    <style>
+        :root {
+            --cb-blue: #0076be;
+            --cb-teal: #00a99d;
+            --bg: #f4f7f9;
+        }
+
+        body { font-family: 'Inter', sans-serif; background: var(--bg); margin: 0; color: #2d3748; }
+
+        /* Navigation */
+        nav {
+            background: white; padding: 15px 40px; display: flex;
+            justify-content: space-between; align-items: center;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.05); position: sticky; top: 0; z-index: 100;
+        }
+        .logo { font-size: 22px; font-weight: 800; color: var(--cb-blue); }
+        .logo span { color: var(--cb-teal); }
+
+        .container { max-width: 1200px; margin: 30px auto; padding: 0 20px; }
+
+        /* Dashboard Stats */
+        .stats-grid {
+            display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 20px; margin-bottom: 30px;
+        }
+        .stat-card {
+            background: white; padding: 20px; border-radius: 12px;
+            text-align: center; border-bottom: 4px solid var(--cb-teal);
+        }
+        .stat-card h3 { margin: 0; font-size: 28px; color: var(--cb-blue); }
+        .stat-card p { margin: 5px 0 0; color: #718096; font-size: 14px; }
+
+        /* Main Layout */
+        .layout { display: grid; grid-template-columns: 2fr 1fr; gap: 25px; }
+
+        .card {
+            background: white; padding: 25px; border-radius: 16px;
+            box-shadow: 0 4px 20px rgba(0,0,0,0.03); margin-bottom: 25px;
+        }
+        h2 { color: var(--cb-blue); font-size: 18px; margin-top: 0; display: flex; align-items: center; gap: 10px; }
+
+        /* Inputs */
+        .vitals-row { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 15px; margin-bottom: 20px; }
+        label { display: block; font-size: 12px; font-weight: 600; color: #718096; margin-bottom: 5px; }
+        input, textarea {
+            width: 100%; padding: 12px; border: 1px solid #e2e8f0;
+            border-radius: 8px; box-sizing: border-box; font-size: 15px;
+        }
+        textarea { height: 100px; resize: none; }
+
+        /* Buttons */
+        .btn-group { display: flex; gap: 10px; margin-top: 15px; flex-wrap: wrap; }
+        button {
+            padding: 12px 20px; border-radius: 8px; border: none;
+            font-weight: 700; cursor: pointer; transition: 0.2s;
+        }
+        .btn-primary { background: var(--cb-blue); color: white; }
+        .btn-teal { background: var(--cb-teal); color: white; }
+        .btn-outline { background: white; border: 2px solid var(--cb-blue); color: var(--cb-blue); }
+        button:hover { opacity: 0.9; transform: translateY(-1px); }
+
+        /* Result Area */
+        #diagBox {
+            margin-top: 20px; padding: 20px; background: #f0f9ff;
+            border-left: 5px solid var(--cb-blue); border-radius: 8px; display: none;
+        }
+
+        /* List Styling */
+        .list-row {
+            padding: 12px 0; border-bottom: 1px solid #edf2f7;
+            display: flex; justify-content: space-between; align-items: center;
+        }
+        .risk-badge { padding: 4px 8px; border-radius: 4px; font-size: 10px; font-weight: bold; }
+        .high { background: #fed7d7; color: #c53030; }
+
+        #outbreakAlert {
+            background: #ecc94b; color: #744210; padding: 12px; border-radius: 8px;
+            text-align: center; font-weight: bold; margin-bottom: 20px; display: none;
+        }
+    </style>
+</head>
+<body>
+
+<nav>
+    <div class="logo">Cure<span>Bay</span> CareSathi</div>
+    <div style="font-size: 12px; font-weight: 600;">OFFLINE NODE: OD-042</div>
+</nav>
+
+<div class="container">
+    <div id="outbreakAlert">⚠️ SYMPTOM CLUSTER DETECTED: Check for local outbreaks.</div>
+
+    <div class="stats-grid">
+        <div class="stat-card"><h3 id="stat-patients">0</h3><p>Patients Today</p></div>
+        <div class="stat-card"><h3 id="stat-high">0</h3><p>Critical Cases</p></div>
+        <div class="stat-card"><h3 id="stat-meds">0</h3><p>Active Inventory</p></div>
+    </div>
+
+    <div class="layout">
+        <div class="main-content">
+            <div class="card">
+                <h2>🩺 Smart Triage Assistant</h2>
+                <div class="vitals-row">
+                    <div><label>Temp (°F)</label><input type="number" id="v_temp" placeholder="98.6"></div>
+                    <div><label>SpO2 (%)</label><input type="number" id="v_spo2" placeholder="98"></div>
+                    <div><label>BP (Systolic/Dia)</label><input type="text" id="v_bp" placeholder="120/80"></div>
+                </div>
+                <label>Symptoms</label>
+                <textarea id="symptomText" placeholder="Start typing or use voice..."></textarea>
+                
+                <div class="btn-group">
+                    <button class="btn-primary" onclick="runDiagnosis()">Run AI Diagnosis</button>
+                    <button class="btn-outline" id="voiceBtn">🎤 Voice Input</button>
+                    <button class="btn-teal" onclick="generatePDF()">📄 Export Referral</button>
+                </div>
+
+                <div id="diagBox">
+                    <div id="diagText" style="white-space: pre-line;"></div>
+                    <button style="margin-top:10px; font-size:12px;" onclick="speak()">🔊 Speak Advice</button>
+                </div>
+            </div>
+
+            <div class="card">
+                <h2>🖼️ Visual Analysis</h2>
+                <input type="file" id="imgInput" style="margin-bottom: 15px;">
+                <button class="btn-primary" onclick="runImageAnalysis()">Process Scan</button>
+                <div id="imgResult" style="margin-top: 15px; font-size: 14px; display: none;"></div>
+            </div>
+        </div>
+
+        <div class="sidebar">
+            <div class="card">
+                <h2>📦 Inventory</h2>
+                <div id="inventoryList" style="margin-bottom: 20px;"></div>
+                <div style="background: #f7fafc; padding: 15px; border-radius: 8px;">
+                    <label>Manage Stock</label>
+                    <input type="text" id="inv_name" placeholder="Item Name" style="margin-bottom:8px;">
+                    <input type="number" id="inv_qty" placeholder="Quantity">
+                    <button class="btn-teal" style="width:100%; margin-top:10px;" onclick="updateStock()">Update</button>
+                </div>
+            </div>
+
+            <div class="card">
+                <h2>⏳ Priority Queue</h2>
+                <div id="queueList"></div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+    const API = "http://127.0.0.1:5005";
+    let lastDiag = "";
+
+    async function fetchInventory() {
+        const res = await fetch(`${API}/get-inventory`);
+        const data = await res.json();
+        const list = document.getElementById("inventoryList");
+        list.innerHTML = Object.entries(data).map(([name, qty]) => `
+            <div class="list-row">
+                <span>${name}</span>
+                <span style="font-weight:700; color:${qty < 10 ? '#e53e3e' : '#2d3748'}">${qty}</span>
+            </div>
+        `).join('');
+        document.getElementById("stat-meds").innerText = Object.keys(data).length;
+    }
+
+    async function updateStock() {
+        const item = document.getElementById("inv_name").value;
+        const quantity = document.getElementById("inv_qty").value;
+        if(!item || !quantity) return;
+        await fetch(`${API}/update-inventory`, {
+            method: 'POST',
+            headers: {'Content-Type': 'application/json'},
+            body: JSON.stringify({item, quantity})
+        });
+        fetchInventory();
+    }
+
+    async function runDiagnosis() {
+        const text = document.getElementById("symptomText").value;
+        const vitals = { temp: document.getElementById("v_temp").value, spo2: document.getElementById("v_spo2").value };
+        const diagBox = document.getElementById("diagBox");
+        diagBox.style.display = "block";
+        document.getElementById("diagText").innerText = "Analyzing symptoms...";
+
+        const res = await fetch(`${API}/analyze-text`, {
+            method: 'POST',
+            headers: {'Content-Type': 'application/json'},
+            body: JSON.stringify({text, vitals})
+        });
+        const data = await res.json();
+        lastDiag = data.diagnosis;
+        document.getElementById("diagText").innerText = lastDiag;
+        updateQueue(text, lastDiag, vitals);
+    }
+
+    function updateQueue(symp, diag, v) {
+        let q = JSON.parse(localStorage.getItem("cs_q") || "[]");
+        let isHigh = diag.includes("High") || (v.spo2 && v.spo2 < 92);
+        q.push({ time: new Date().toLocaleTimeString(), symp: symp.slice(0, 20), isHigh });
+        q.sort((a,b) => b.isHigh - a.isHigh);
+        localStorage.setItem("cs_q", JSON.stringify(q.slice(0, 10)));
+        renderQueue();
+    }
+
+    function renderQueue() {
+        const list = document.getElementById("queueList");
+        const q = JSON.parse(localStorage.getItem("cs_q") || "[]");
+        list.innerHTML = q.map(i => `
+            <div class="list-row">
+                <div><small>${i.time}</small><br>${i.symp}...</div>
+                ${i.isHigh ? '<span class="risk-badge high">HIGH</span>' : ''}
+            </div>
+        `).join('');
+        document.getElementById("stat-patients").innerText = q.length;
+        document.getElementById("stat-high").innerText = q.filter(i => i.isHigh).length;
+        if(q.length > 4) document.getElementById("outbreakAlert").style.display = "block";
+    }
+
+    async function runImageAnalysis() {
+        const file = document.getElementById("imgInput").files[0];
+        if(!file) return;
+        const resBox = document.getElementById("imgResult");
+        resBox.style.display = "block"; resBox.innerText = "Analyzing...";
+        const fd = new FormData(); fd.append('file', file);
+        const res = await fetch(`${API}/analyze-image`, {method: 'POST', body: fd});
+        const d = await res.json();
+        resBox.innerHTML = `<strong>Finding:</strong> ${d.label}<br>${d.explanation}`;
+    }
+
+    function speak() { window.speechSynthesis.speak(new SpeechSynthesisUtterance(lastDiag)); }
+
+    function generatePDF() {
+        const doc = new jspdf.jsPDF();
+        doc.text("CureBay CareSathi - Referral", 15, 15);
+        doc.text(`Symptoms: ${document.getElementById("symptomText").value}`, 15, 25);
+        doc.text(`Diagnosis: ${lastDiag}`, 15, 45);
+        doc.save("CareSathi_Referral.pdf");
+    }
+
+    // Voice
+    let chunks = [];
+    document.getElementById("voiceBtn").onclick = async () => {
+        const stream = await navigator.mediaDevices.getUserMedia({audio:true});
+        const rec = new MediaRecorder(stream);
+        rec.ondataavailable = e => chunks.push(e.data);
+        rec.onstop = async () => {
+            const fd = new FormData(); fd.append('file', new Blob(chunks), 'v.wav');
+            const res = await fetch(`${API}/transcribe`, {method:'POST', body:fd});
+            const d = await res.json();
+            document.getElementById("symptomText").value = d.transcript;
+            runDiagnosis();
+        };
+        rec.start();
+        document.getElementById("voiceBtn").innerText = "🔴 Listening...";
+        setTimeout(() => { rec.stop(); document.getElementById("voiceBtn").innerText = "🎤 Voice Input"; }, 5000);
+    };
+
+    window.onload = () => { fetchInventory(); renderQueue(); };
+</script>
+</body>
+</html>

@@ -1,0 +1,15 @@
+flask          # To create a local API for Electron
+flask-cors     # To allow Electron to talk to Python
+pyinstaller
+# Speech
+vosk
+
+# Text & Logic
+sentence-transformers
+scikit-learn
+pandas
+numpy
+
+# Image & General AI
+tensorflow-cpu  # Use CPU version to keep the .exe size smaller
+pillow          # For image handling
