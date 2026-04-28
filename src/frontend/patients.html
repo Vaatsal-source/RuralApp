@@ -54,7 +54,7 @@
             const village = document.getElementById('p_village').value;
             if(!name || !age || !village) return alert("Please fill all fields");
             
-            await fetch('http://127.0.0.1:5005/add-patient', {
+            await fetch('https://rural-app-backend.onrender.com/add-patient', {
                 method: 'POST',
                 headers: {'Content-Type': 'application/json'},
                 body: JSON.stringify({name, age, village})

@@ -69,7 +69,7 @@
         const item = document.getElementById("inv_name").value;
         const quantity = document.getElementById("inv_qty").value;
         if(!item || !quantity) return alert("Please fill both fields");
-        await fetch(`http://127.0.0.1:5005/update-inventory`, { 
+        await fetch(`https://rural-app-backend.onrender.com/update-inventory`, { 
             method: 'POST', 
             headers: {'Content-Type': 'application/json'}, 
             body: JSON.stringify({item, quantity}) 
